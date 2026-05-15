@@ -1,0 +1,72 @@
+<!-- templates/power_saving.html -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Режим энергосбережения</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <header>
+        <h1>Энергосбережение</h1>
+        <nav>
+            <a href="/">Главная</a> |
+            <a href="/control">Контроль</a> |
+            <a href="/history">История</a> |
+            <a href="/status">Статус</a> |
+        </nav>
+    </header>
+
+    <main>
+        <section class="card">
+            <h2>Текущий режим энергосбережения</h2>
+            <div class="mode-display">
+                <span id="current-mode" class="mode-badge {{ 'mode-off' if current_mode == 'off' else 'mode-active' }}">
+                    {% if current_mode == 'off' %}Выключен
+                    {% elif current_mode == 'low' %}Низкий
+                    {% elif current_mode == 'medium' %}Средний
+                    {% elif current_mode == 'high' %}Максимальный
+                    {% endif %}
+                </span>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Выберите режим</h2>
+            <form method="post" action="/set_power_saving">
+                <div class="radio-group">
+                    <label>
+                        <input type="radio" name="mode" value="off" {% if current_mode == 'off' %}checked{% endif %}>
+                        <span class="radio-label">Выключен</span>
+                        <small>Полная производительность, максимальное энергопотребление</small>
+                    </label>
+
+                    <label>
+                        <input type="radio" name="mode" value="low" {% if current_mode == 'low' %}checked{% endif %}>
+                        <span class="radio-label">Низкий</span>
+                        <small>Снижение частоты опроса датчиков на 30%</small>
+                    </label>
+
+                    <label>
+                        <input type="radio" name="mode" value="medium" {% if current_mode == 'medium' %}checked{% endif %}>
+                        <span class="radio-label">Средний</span>
+                        <small>Оптимальный баланс между потреблением и откликом</small>
+                    </label>
+
+                    <label>
+                        <input type="radio" name="mode" value="high" {% if current_mode == 'high' %}checked{% endif %}>
+                        <span class="radio-label">Максимальный</span>
+                        <small>Минимальное энергопотребление, возможна задержка отклика</small>
+                    </label>
+                </div>
+                <button type="submit" class="btn primary">Применить</button>
+            </form>
+        </section>
+    </main>
+
+    <footer>
+        <p>Устройство: ESP32 | Режим энергосбережения влияет на частоту опроса и активность периферии</p>
+    </footer>
+</body>
+</html>

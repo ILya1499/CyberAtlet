@@ -1,0 +1,105 @@
+<!-- templates/power_saving.html -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Режим энергосбережения</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <header>
+        <h1>Энергосбережение</h1>
+        <nav>
+            <button onclick="location.href='/'" class="btn">Main page</button>
+            <button onclick="location.href='/control'" class="btn">Control motors</button>
+            <button onclick="location.href='/history'" class="btn">View history</button>
+            <button onclick="location.href='/status'" class="btn">Server status</button>
+        </nav>
+    </header>
+
+    <main>
+
+        <section class="card">
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h2>Выберите режим</h2>
+                </div>
+                <form method="post" action="/powerSaving">
+                    <div class="radio-group">
+                        <div>
+                            <label>
+                                <input type="radio" name="mode" value="off" {% if current_mode == 'off' %}checked{% endif %}>
+                                <span class="radio-label">Выключен</span>
+                                <small>Полная производительность, максимальное энергопотребление</small>
+                            </label>
+                        </div>
+                        <div>
+                            <label>
+                                <input type="radio" name="mode" value="low" {% if current_mode == 'low' %}checked{% endif %}>
+                                <span class="radio-label">Низкий</span>
+                                <small>Снижение частоты опроса датчиков на 30%</small>
+                            </label>
+                        </div>
+                        <div>
+                            <label>
+                                <input type="radio" name="mode" value="medium" {% if current_mode == 'medium' %}checked{% endif %}>
+                                <span class="radio-label">Средний</span>
+                                <small>Оптимальный баланс между потреблением и откликом</small>
+                            </label>
+                        </div>
+                        <div>
+                            <label>
+                                <input type="radio" name="mode" value="high" {% if current_mode == 'high' %}checked{% endif %}>
+                                <span class="radio-label">Максимальный</span>
+                                <small>Минимальное энергопотребление, возможна задержка отклика</small>
+                            </label>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn primary">Применить</button>
+                </form>
+            </div>
+        </section>
+
+        <section class="card">
+            <!-- Отображение текущего статуса -->
+            <div class="status-display">
+                <strong>Текущий режим:</strong>
+                {% if current_mode == 'off' %}
+                    <span class="status-badge status-off">Выключен</span>
+                    <p class="status-desc">Полная производительность, максимальное энергопотребление</p>
+                {% elif current_mode == 'low' %}
+                    <span class="status-badge status-low">Низкий</span>
+                    <p class="status-desc">Снижение частоты опроса датчиков на 30%</p>
+                {% elif current_mode == 'medium' %}
+                    <span class="status-badge status-medium">Средний</span>
+                    <p class="status-desc">Оптимальный баланс между потреблением и откликом</p>
+                {% elif current_mode == 'high' %}
+                    <span class="status-badge status-high">Максимальный</span>
+                    <p class="status-desc">Минимальное энергопотребление, возможна задержка отклика</p>
+                {% else %}
+                    <span class="status-badge status-unknown">Неизвестно</span>
+                    <p class="status-desc">Статус режима энергосбережения недоступен</p>
+                {% endif %}
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>Устройство: ESP32 | Режим энергосбережения влияет на частоту опроса и активность периферии</p>
+    </footer>
+
+    <script>
+  const ws = new WebSocket("ws://95.163.230.7:8000/ws");
+  ws.onmessage = function(event) {
+    const msg = JSON.parse(event.data);
+    if (msg.type === "status") {
+      const mode = msg.data.powerSaving_mode;
+      document.getElementById("current-mode").textContent = 
+        ({'off':'Выключен','low':'Низкий','medium':'Средний','high':'Максимальный'})[mode] || 'Неизвестно';
+      // Можно обновить и другие элементы
+    }
+  };
+    </script>
+</body>
+</html>

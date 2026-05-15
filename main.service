@@ -1,0 +1,16 @@
+[Unit]
+Description=KiberAtletServerBot
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+
+Environment=PYTHONPATH=/root/KiberAtlet
+WorkingDirectory=/root/KiberAtlet
+ExecStart=/usr/bin/python3 /root/KiberAtlet/main.py
+Restart=always
+RestartSec=5
+[Install]
+WantedBy=network.target

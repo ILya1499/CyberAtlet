@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Status</title>
+    <link rel="stylesheet" href="/static/EDbutton.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8f9fa;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+        header {
+            background: #495057;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        nav {
+            padding: 15px;
+            background: #e9ecef;
+            text-align: center;
+        }
+        nav button {
+            margin: 0 8px;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        nav button:hover { opacity: 0.9; }
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+        .card {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 16px;
+            background: #fff;
+        }
+        .card h3 {
+            margin: 0 0 12px 0;
+            color: #495057;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card .value {
+            font-size: 20px;
+            font-weight: 600;
+            color: #212529;
+        }
+        .status-ok { color: #28a745; }
+        .status-warn { color: #ffc107; }
+        .status-error { color: #dc3545; }
+        .last-update {
+            text-align: center;
+            padding: 12px;
+            color: #6c757d;
+            font-size: 14px;
+            border-top: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 Статус сервера</h1>
+        </header>
+        <nav>
+            <button 
+                class="btn" 
+                {% if request.url.path == '/' %}disabled{% else %}onclick="location.href='/'"{% endif %}>
+                Main page
+            </button>
+            <button 
+                class="btn" 
+                {% if request.url.path == '/control' %}disabled{% else %}onclick="location.href='/control'"{% endif %}>
+                Control motors
+            </button>
+            <button 
+                class="btn" 
+                {% if request.url.path == '/history' %}disabled{% else %}onclick="location.href='/history'"{% endif %}>
+                View History
+            </button>
+            <button 
+                class="btn" 
+                {% if request.url.path == '/status' %}disabled{% else %}onclick="location.href='/status'"{% endif %}>
+                Server status
+            </button>
+            <button 
+                class="btn" 
+                {% if request.url.path == '/powerSaving' %}disabled{% else %}onclick="location.href='/powerSaving'"{% endif %}>
+                Power saving
+            </button>
+            <button
+                class="btn" 
+                {% if request.url.path == '/mode' %}disabled{% else %}onclick="location.href='/mode'"{% endif %}>
+                Modes
+            </button>
+        </nav>
+
+        <div class="status-grid" id="serverStatus">
+            <div class="card">
+                <h3>⏳ Загрузка...</h3>
+            </div>
+        </div>
+
+        <div class="last-update">
+            Обновлено: <span id="updateTime">—</span>
+        </div>
+    </div>
+
+    <script>
+        async function fetchServerStatus() {
+            try {
+                const response = await fetch('/api/server_status');
+                const data = await response.json();
+
+                const statusHtml = `
+                    <div class="card">
+                        <h3>🕒 Время работы</h3>
+                        <div class="value">${new Date(data.server_uptime).toLocaleString()}</div>
+                    </div>
+                    <div class="card">
+                        <h3>💾 База данных</h3>
+                        <div class="value ${data.database_connected ? 'status-ok' : 'status-error'}">
+                            ${data.database_connected ? 'Подключена' : 'Отключена'}
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>📡 WebSocket клиенты</h3>
+                        <div class="value ${data.websocket_clients > 0 ? 'status-ok' : ''}">
+                            ${data.websocket_clients}
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>📁 CSV-файлов</h3>
+                        <div class="value">${data.data_files.csv_count}</div>
+                    </div>
+                    <div class="card">
+                        <h3>🗃️ BIN-файлов</h3>
+                        <div class="value">${data.data_files.bin_count}</div>
+                    </div>
+                    <div class="card">
+                        <h3>🔋 Режим энергосбережения</h3>
+                        <div class="value ${
+                            data.power_saving_mode === 'off' ? 'status-error' :
+                            data.power_saving_mode === 'high' ? 'status-ok' : 'status-warn'
+                        }">
+                            ${
+                                data.power_saving_mode === 'off' ? 'Выкл' :
+                                data.power_saving_mode === 'low' ? 'Низкий' :
+                                data.power_saving_mode === 'medium' ? 'Средний' : 'Макс.'
+                            }
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>📝 Запись (веб)</h3>
+                        <div class="value ${data.is_recording_via_web ? 'status-warn' : 'status-ok'}">
+                            ${data.is_recording_via_web ? 'Активна' : 'Остановлена'}
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>📂 Размер данных</h3>
+                        <div class="value">${(data.data_files.total_size_bytes / 1024).toFixed(1)} КБ</div>
+                    </div>
+                `;
+
+                document.getElementById('serverStatus').innerHTML = statusHtml;
+                document.getElementById('updateTime').textContent = new Date().toLocaleTimeString();
+            } catch (error) {
+                console.error('Ошибка загрузки статуса:', error);
+                document.getElementById('serverStatus').innerHTML = 
+                    `<div class="card"><h3>❌ Ошибка подключения к серверу</h3></div>`;
+            }
+        }
+
+        // Обновляем каждые 5 секунд
+        fetchServerStatus();
+        setInterval(fetchServerStatus, 5000);
+    </script>
+</body>
+</html>
