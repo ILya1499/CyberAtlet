@@ -1,0 +1,14 @@
+/* Стиль для неактивной (текущей) кнопки */
+.btn:disabled {
+    background-color: #ffffff !important;   /* Синий фон */
+    color: #0056b3 !important;                /* Белый текст */
+    border-color: #ffffff !important;       /* Темно-синяя рамка */
+    opacity: 1 !important;                  /* Отменяем прозрачность */
+    cursor: default !important;             /* Стрелка вместо "запрещено" */
+    box-shadow: none !important;
+}
+
+/* Опционально: добавим лёгкое затемнение при наведении (хотя кнопка не кликабельна) */
+.btn:disabled:hover {
+    background-color: #ffffff !important;
+}

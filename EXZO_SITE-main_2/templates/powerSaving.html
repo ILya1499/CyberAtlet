@@ -1,0 +1,168 @@
+<!-- templates/power_saving.html -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Режим энергосбережения</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="/static/EDbutton.css">
+</head>
+<body>
+    <header>
+        <h1>Энергосбережение</h1>
+        <nav>
+            <button 
+                class="btn" 
+                {% if request.url.path == '/' %}disabled{% else %}onclick="location.href='/'"{% endif %}>
+                Main page
+            </button>
+            <button 
+                class="btn" 
+                {% if request.url.path == '/control' %}disabled{% else %}onclick="location.href='/control'"{% endif %}>
+                Control motors
+            </button>
+            <button 
+                class="btn" 
+                {% if request.url.path == '/history' %}disabled{% else %}onclick="location.href='/history'"{% endif %}>
+                View History
+            </button>
+            <button 
+                class="btn" 
+                {% if request.url.path == '/status' %}disabled{% else %}onclick="location.href='/status'"{% endif %}>
+                Server status
+            </button>
+            <button 
+                class="btn" 
+                {% if request.url.path == '/powerSaving' %}disabled{% else %}onclick="location.href='/powerSaving'"{% endif %}>
+                Power saving
+            </button>
+            <button
+                class="btn" 
+                {% if request.url.path == '/mode' %}disabled{% else %}onclick="location.href='/mode'"{% endif %}>
+                Modes
+            </button>
+        </nav>
+    </header>
+
+    <main>
+        <div class="container">
+            
+            <div class="card">
+                <h2>Выберите режим энергосбережения</h2>
+                <div class="modes-container">
+                    <div class="section">
+                        <button class="btn mode-btn off" data-mode="off" onclick="setPowerMode('off')">
+                            Выключен
+                        </button>
+                        <label> - Полная производительность, максимальное энергопотребление</label>
+                    </div>
+                    <div class="section">
+                        <button class="btn mode-btn low" data-mode="low" onclick="setPowerMode('low')">
+                            Низкий
+                        </button>
+                        <label> - Снижение частоты опроса датчиков на 30%</label>
+                    </div>
+                    <div class="section">
+                        <button class="btn mode-btn medium" data-mode="medium" onclick="setPowerMode('medium')">
+                            Средний
+                        </button>
+                        <label> - Оптимальный баланс между потреблением и откликом</label>
+                    </div>
+                    <div class="section">
+                        <button class="btn mode-btn high" data-mode="high" onclick="setPowerMode('high')">
+                            Максимальный
+                        </button>
+                        <label> - Минимальное энергопотребление, возможна задержка отклика</label>
+                    </div>
+                </div>
+                <!-- Статус выбранного режима -->
+                <div id="mode-status" class="current-mode-display" style="margin-top: 25px; display: none;">
+                    <strong>Текущий режим:</strong>
+                    <div id="mode-status-text"></div>
+                </div>
+            </div>
+        </div>
+        <footer>
+            <p>Устройство: ESP32 | Режим энергосбережения влияет на частоту опроса и активность периферии</p>
+        </footer>
+
+    </main>
+
+    
+
+    <script>
+        // 🔥 ПОЛНЫЕ ОПРЕДЕЛЕНИЯ (не заглушки!)
+        const modeDescriptions = {
+            'off': 'Полная производительность, максимальное энергопотребление',
+            'low': 'Снижение частоты опроса датчиков на 30%',
+            'medium': 'Оптимальный баланс между потреблением и откликом',
+            'high': 'Минимальное энергопотребление, возможна задержка отклика'
+        };
+
+        const modeTitles = {
+            'off': 'Выключен',
+            'low': 'Низкий',
+            'medium': 'Средний',
+            'high': 'Максимальный'
+        };
+
+        function showModeStatus(mode) {
+            if (!modeTitles[mode]) mode = 'off';
+            const el = document.getElementById('mode-status-text');
+            const statusDiv = document.getElementById('mode-status');
+            el.innerHTML = `
+                <span class="status-badge status-${mode}">${modeTitles[mode]}</span>
+                <p>${modeDescriptions[mode]}</p>
+            `;
+            statusDiv.style.display = 'block';
+        }
+
+        function updateActiveButton(mode) {
+            if (!mode || !modeTitles[mode]) {
+                mode = 'off';
+            }
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === mode);
+            });
+            showModeStatus(mode);
+        }
+
+        async function setPowerMode(mode) {
+            try {
+                const res = await fetch('/api/power_saving', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode })
+                });
+                if (!res.ok) throw new Error('HTTP error');
+            } catch (e) {
+                console.error('Ошибка:', e);
+                alert('Не удалось применить режим');
+            }
+        }
+
+        // WebSocket
+        document.addEventListener('DOMContentLoaded', () => {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            const ws = new WebSocket(wsUrl);
+
+            ws.onmessage = function(event) {
+                try {
+                    const msg = JSON.parse(event.data);
+                    if (msg.type === "status") {
+                        // 🔥 КЛЮЧЕВОЕ: точное имя поля
+                        const mode = msg.data.powerSaving_mode || 'off';
+                        updateActiveButton(mode);
+                    }
+                } catch (e) {
+                    console.error("Ошибка парсинга:", e);
+                }
+            };
+
+            ws.onerror = (e) => console.error("WebSocket error:", e);
+        });
+    </script>
+</body>
+</html>
